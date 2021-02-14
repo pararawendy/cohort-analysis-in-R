@@ -12,7 +12,7 @@ df = read.csv("relay-foods.csv")
 df$OrderDate = format(as.Date(df$OrderDate, '%m/%d/%Y'), '%Y/%m/%d')
 df$OrderDate = gsub('00','20',df$OrderDate)
 
-#c reate OrderMonth column from OrderDate (to  make monthly cohort)
+# create OrderMonth column from OrderDate (to  make monthly cohort)
 df$OrderMonth = str_sub(df$OrderDate,end = 7)
 
 # create reference data frame of cohort group (month level)
