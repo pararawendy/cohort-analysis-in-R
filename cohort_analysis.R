@@ -4,7 +4,6 @@ library(ggplot2)
 library(ggthemes)
 library(gghighlight)
 library(mdthemes)
-library(stringr)
 
 # load raw data
 df = read.csv("relay-foods.csv")
