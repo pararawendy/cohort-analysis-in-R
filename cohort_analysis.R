@@ -4,6 +4,7 @@ library(ggplot2)
 library(ggthemes)
 library(gghighlight)
 library(mdthemes)
+library(stringr)
 
 # load raw data
 df = read.csv("relay-foods.csv")
@@ -45,10 +46,10 @@ user_cohort_df = user_cohort_df %>% group_by(CohortGroup) %>%
 # prepare subset of data frame to plot (to avoid clutter/overplotting)
 plot_user_cohort_df = inner_join(base_cohort_df[seq(1,11,2),c("CohortGroup")], user_cohort_df, by = "CohortGroup")
 
-# dummy column for in-place legend (gghighlight)
+# dummy column for in-place legend (utilize gghighlight)
 plot_user_cohort_df$dummy_col = 1
 
-# plotting
+# plotting (line plot version)
 ggplot(plot_user_cohort_df) +
   geom_line(aes(x = MonthNumber,
                 y = BuyingUsers/TotalUsers,
@@ -63,3 +64,61 @@ ggplot(plot_user_cohort_df) +
     x = "K-th Month",
     y = "Retention"
   ) 
+
+# create base dataframe for heat map visualization
+cohort_heatmap_df = user_cohort_df %>% select(CohortGroup, MonthNumber, BuyingUsers) %>%
+          spread(MonthNumber, BuyingUsers)
+
+# the percetage version of the dataframe
+cohort_heatmap_df_pct = data.frame(
+  cohort_heatmap_df$CohortGroup,
+  cohort_heatmap_df[,2:ncol(cohort_heatmap_df)] / cohort_heatmap_df[["1"]]
+)
+
+# assign the same column names
+colnames(cohort_heatmap_df_pct) = colnames(cohort_heatmap_df)
+
+# melt the dataframes for plotting
+plot_data_abs = gather(cohort_heatmap_df, "MonthNumber", "BuyingUsers", 2:ncol(cohort_heatmap_df))
+plot_data_pct = gather(cohort_heatmap_df_pct, "MonthNumber", "Retention", 2:ncol(cohort_heatmap_df_pct))
+
+# prepare label names containing absolute number of buyers for the first month
+# and retention percentages for the rest months
+label_names = c(plot_data_abs$BuyingUsers[1:(ncol(cohort_heatmap_df)-1)],
+                plot_data_pct$Retention[(ncol(cohort_heatmap_df_pct)):(nrow(plot_data_pct))])
+
+# beautify percentage labels.
+beauty_print <- function(n) {
+  case_when( n <= 1  ~ sprintf("%1.0f %%", n*100),
+             n >  1  ~ as.character(n),
+             TRUE    ~ " ") 
+}
+
+# create dataframe ready for plotting
+plot_data = data.frame(
+  CohortGroup = plot_data_pct$CohortGroup,
+  MonthNumber = plot_data_pct$MonthNumber,
+  Retention = plot_data_pct$Retention,
+  Label = beauty_print(label_names)
+)
+plot_data$MonthNumber = as.numeric(plot_data$MonthNumber)
+
+# plotting (heatmap version)
+ggplot(plot_data) +
+  geom_raster(aes(x = MonthNumber,
+                  y = reorder(CohortGroup, desc(CohortGroup)),
+                  fill = Retention)) +
+  scale_fill_continuous(guide = FALSE, type = "gradient",
+                        low = "deepskyblue", high = "darkblue") +
+  scale_x_continuous(breaks = seq(from = 1, to = 15, by = 1)) +
+  geom_text(aes(x = MonthNumber,
+                y = reorder(CohortGroup, desc(CohortGroup)),
+                label = Label), col = "white") +
+  mdthemes::md_theme_gray() +
+  labs(
+    title = "**Monthly User Purchasing Cohort**",
+    caption = "*Data: Relay Food order details (Source: github.com/ethen8181)*", 
+    x = "K-th Month",
+    y = "Cohort Group"
+  ) 
+
