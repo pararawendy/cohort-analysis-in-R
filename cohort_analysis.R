@@ -109,7 +109,8 @@ ggplot(plot_data) +
                   fill = Retention)) +
   scale_fill_continuous(guide = FALSE, type = "gradient",
                         low = "deepskyblue", high = "darkblue") +
-  scale_x_continuous(breaks = seq(from = 1, to = 15, by = 1)) +
+  scale_x_continuous(breaks = seq(from = 1, to = 15, by = 1),
+                    expand = c(0,0)) +
   geom_text(aes(x = MonthNumber,
                 y = reorder(CohortGroup, desc(CohortGroup)),
                 label = Label), col = "white") +
